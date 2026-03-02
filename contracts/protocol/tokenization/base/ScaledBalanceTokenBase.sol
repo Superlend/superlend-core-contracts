@@ -97,10 +97,14 @@ abstract contract ScaledBalanceTokenBase is MintableIncentivizedERC20, IScaledBa
    * @param index The variable debt index of the reserve
    */
   function _burnScaled(address user, address target, uint256 amount, uint256 index) internal {
-    uint256 amountScaled = amount.rayDiv(index);
-    require(amountScaled != 0, Errors.INVALID_BURN_AMOUNT);
+    uint256 amountScaled = amount.rayDivRoundUp(index);
 
     uint256 scaledBalance = super.balanceOf(user);
+    if (amountScaled > scaledBalance) {
+      amountScaled = scaledBalance;
+    }
+    require(amountScaled != 0, Errors.INVALID_BURN_AMOUNT);
+
     uint256 balanceIncrease = scaledBalance.rayMul(index) -
       scaledBalance.rayMul(_userState[user].additionalData);
 

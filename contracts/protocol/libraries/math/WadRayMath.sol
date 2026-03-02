@@ -92,6 +92,23 @@ library WadRayMath {
   }
 
   /**
+   * @notice Divides two ray, always rounding up (ceiling division)
+   * @param a Ray
+   * @param b Ray
+   * @return c = a raydiv b, rounded up
+   */
+  function rayDivRoundUp(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    // to avoid overflow, a <= (type(uint256).max - (b - 1)) / RAY
+    assembly {
+      if or(iszero(b), iszero(iszero(gt(a, div(sub(not(0), sub(b, 1)), RAY))))) {
+        revert(0, 0)
+      }
+
+      c := div(add(mul(a, RAY), sub(b, 1)), b)
+    }
+  }
+
+  /**
    * @dev Casts ray down to wad
    * @dev assembly optimized for improved gas savings, see https://twitter.com/transmissions11/status/1451131036377571328
    * @param a Ray
