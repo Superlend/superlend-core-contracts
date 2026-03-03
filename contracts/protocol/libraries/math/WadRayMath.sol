@@ -92,6 +92,23 @@ library WadRayMath {
   }
 
   /**
+   * @notice Divides two ray, always rounding down (floor division)
+   * @param a Ray
+   * @param b Ray
+   * @return c = a raydiv b, rounded down
+   */
+  function rayDivRoundDown(uint256 a, uint256 b) internal pure returns (uint256 c) {
+    // to avoid overflow, a <= type(uint256).max / RAY
+    assembly {
+      if or(iszero(b), iszero(iszero(gt(a, div(not(0), RAY))))) {
+        revert(0, 0)
+      }
+
+      c := div(mul(a, RAY), b)
+    }
+  }
+
+  /**
    * @notice Divides two ray, always rounding up (ceiling division)
    * @param a Ray
    * @param b Ray
