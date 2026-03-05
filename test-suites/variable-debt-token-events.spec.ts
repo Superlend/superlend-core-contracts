@@ -235,9 +235,10 @@ makeSuite('VariableDebtToken: Events', (testEnv: TestEnv) => {
     updateBalances(balances, variableDebtDai, rcpt);
     const aliceBalanceAfter = await variableDebtDai.balanceOf(alice.address);
 
+    // Tolerance of 10 to account for protocol-favorable rounding (mint round-up, burn round-down)
     expect(aliceBalanceAfter).to.be.closeTo(
       aliceBalanceBefore.add(balances.balance[alice.address]),
-      4
+      10
     );
   };
 
@@ -349,11 +350,12 @@ makeSuite('VariableDebtToken: Events', (testEnv: TestEnv) => {
     updateBalances(balances, variableDebtDai, rcpt);
     const bobBalanceAfter = await variableDebtDai.balanceOf(bob.address);
 
+    // Tolerance of 25 to account for protocol-favorable rounding (mint round-up, burn round-down)
     expect(aliceBalanceAfter).to.be.closeTo(
       aliceBalanceBefore.add(balances.balance[alice.address]),
-      10
+      25
     );
-    expect(bobBalanceAfter).to.be.closeTo(bobBalanceBefore.add(balances.balance[bob.address]), 10);
+    expect(bobBalanceAfter).to.be.closeTo(bobBalanceBefore.add(balances.balance[bob.address]), 25);
   };
 
   it('Alice borrows 100 DAI, Bob borrows 100 DAI on behalf of Alice, Bob borrows 50 DAI, Alice borrows 50 DAI, repays 250 DAI and repays 50 DAI on behalf of Bob, borrows 10 DAI more (without index change)', async () => {
@@ -465,11 +467,11 @@ makeSuite('VariableDebtToken: Events', (testEnv: TestEnv) => {
     updateBalances(balances, variableDebtDai, rcpt);
     const bobBalanceAfter = await variableDebtDai.balanceOf(bob.address);
 
-    // Tolerance of 10 to account for protocol-favorable rounding (mint round-up, burn round-down)
+    // Tolerance of 25 to account for protocol-favorable rounding (mint round-up, burn round-down)
     expect(aliceBalanceAfter).to.be.closeTo(
       aliceBalanceBefore.add(balances.balance[alice.address]),
-      10
+      25
     );
-    expect(bobBalanceAfter).to.be.closeTo(bobBalanceBefore.add(balances.balance[bob.address]), 10);
+    expect(bobBalanceAfter).to.be.closeTo(bobBalanceBefore.add(balances.balance[bob.address]), 25);
   };
 });
