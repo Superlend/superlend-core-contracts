@@ -338,7 +338,7 @@ export const variableBorrow = async (
   const rcpt = await tx.wait();
 
   const indexAfter = await pool.getReserveNormalizedVariableDebt(underlying);
-  const addedScaledBalance = amount.rayDiv(indexAfter);
+  const addedScaledBalance = amount.rayDivRoundUp(indexAfter);
   const scaledBalance = (await variableDebtToken.scaledBalanceOf(onBehalfOf)).sub(
     addedScaledBalance
   );
@@ -392,10 +392,12 @@ export const repayVariableBorrow = async (
     .withArgs(user.address, onBehalfOf, amount);
 
   const indexAfter = await pool.getReserveNormalizedVariableDebt(underlying);
-  const addedScaledBalance = amount.rayDiv(indexAfter);
-  const scaledBalance = (await variableDebtToken.scaledBalanceOf(onBehalfOf)).add(
-    addedScaledBalance
-  );
+  const scaledBalanceAfter = await variableDebtToken.scaledBalanceOf(onBehalfOf);
+  const addedScaledBalance =
+    scaledBalanceAfter.eq(0)
+      ? amount.rayDiv(indexAfter)
+      : amount.rayDivRoundDown(indexAfter);
+  const scaledBalance = scaledBalanceAfter.add(addedScaledBalance);
   const balanceIncrease = getBalanceIncrease(scaledBalance, previousIndex, indexAfter);
 
   if (debug) printVariableDebtTokenEvents(variableDebtToken, rcpt);

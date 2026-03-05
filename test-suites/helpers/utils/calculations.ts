@@ -460,7 +460,7 @@ export const calcExpectedReserveDataAfterBorrow = (
     expectedReserveData.averageStableBorrowRate = reserveDataBeforeAction.averageStableBorrowRate;
 
     expectedReserveData.scaledVariableDebt = reserveDataBeforeAction.scaledVariableDebt.add(
-      amountBorrowedBN.rayDiv(expectedReserveData.variableBorrowIndex)
+      amountBorrowedBN.rayDivRoundUp(expectedReserveData.variableBorrowIndex)
     );
 
     const totalVariableDebtAfterTx = expectedReserveData.scaledVariableDebt.rayMul(
@@ -593,9 +593,15 @@ export const calcExpectedReserveDataAfterRepay = (
       }
     }
   } else {
-    expectedReserveData.scaledVariableDebt = reserveDataBeforeAction.scaledVariableDebt.sub(
-      amountRepaidBN.rayDiv(expectedReserveData.variableBorrowIndex)
-    );
+    // Match contract logic: full repay burns entire scaled balance, else use rayDivRoundDown
+    const userScaledBalance = userDataBeforeAction.scaledVariableDebt;
+    let scaledToBurn = amountRepaidBN.rayDivRoundDown(expectedReserveData.variableBorrowIndex);
+    if (amountRepaidBN.gte(userVariableDebt) || scaledToBurn.gt(userScaledBalance)) {
+      scaledToBurn = userScaledBalance;
+    }
+
+    expectedReserveData.scaledVariableDebt =
+      reserveDataBeforeAction.scaledVariableDebt.sub(scaledToBurn);
     expectedReserveData.totalVariableDebt = expectedReserveData.scaledVariableDebt.rayMul(
       expectedReserveData.variableBorrowIndex
     );
@@ -673,7 +679,7 @@ export const calcExpectedUserDataAfterBorrow = (
     expectedUserData.scaledVariableDebt = userDataBeforeAction.scaledVariableDebt;
   } else {
     expectedUserData.scaledVariableDebt = reserveDataBeforeAction.scaledVariableDebt.add(
-      amountBorrowedBN.rayDiv(expectedDataAfterAction.variableBorrowIndex)
+      amountBorrowedBN.rayDivRoundUp(expectedDataAfterAction.variableBorrowIndex)
     );
 
     expectedUserData.principalStableDebt = userDataBeforeAction.principalStableDebt;
@@ -765,9 +771,14 @@ export const calcExpectedUserDataAfterRepay = (
     expectedUserData.stableBorrowRate = userDataBeforeAction.stableBorrowRate;
     expectedUserData.stableRateLastUpdated = userDataBeforeAction.stableRateLastUpdated;
 
-    expectedUserData.scaledVariableDebt = userDataBeforeAction.scaledVariableDebt.sub(
-      totalRepaidBN.rayDiv(expectedDataAfterAction.variableBorrowIndex)
-    );
+    // Match contract logic: full repay burns entire scaled balance, else use rayDivRoundDown
+    const userScaledBalance = userDataBeforeAction.scaledVariableDebt;
+    let scaledToBurn = totalRepaidBN.rayDivRoundDown(expectedDataAfterAction.variableBorrowIndex);
+    if (totalRepaidBN.gte(variableDebt) || scaledToBurn.gt(userScaledBalance)) {
+      scaledToBurn = userScaledBalance;
+    }
+
+    expectedUserData.scaledVariableDebt = userDataBeforeAction.scaledVariableDebt.sub(scaledToBurn);
     expectedUserData.currentVariableDebt = expectedUserData.scaledVariableDebt.rayMul(
       expectedDataAfterAction.variableBorrowIndex
     );
@@ -845,7 +856,7 @@ export const calcExpectedReserveDataAfterSwapRateMode = (
   if (rateMode === RateMode.Stable) {
     //swap user stable debt to variable
     expectedReserveData.scaledVariableDebt = reserveDataBeforeAction.scaledVariableDebt.add(
-      stableDebt.rayDiv(expectedReserveData.variableBorrowIndex)
+      stableDebt.rayDivRoundUp(expectedReserveData.variableBorrowIndex)
     );
 
     expectedReserveData.totalVariableDebt = expectedReserveData.scaledVariableDebt.rayMul(
@@ -862,12 +873,12 @@ export const calcExpectedReserveDataAfterSwapRateMode = (
       userDataBeforeAction.stableBorrowRate
     );
   } else {
-    //swap variable to stable
+    //swap variable to stable - burns user's full variable debt (full-repay guard in contract)
     expectedReserveData.principalStableDebt = expectedReserveData.totalStableDebt =
       totalStableDebtUntilTx.add(variableDebt);
 
     expectedReserveData.scaledVariableDebt = reserveDataBeforeAction.scaledVariableDebt.sub(
-      variableDebt.rayDiv(expectedReserveData.variableBorrowIndex)
+      userDataBeforeAction.scaledVariableDebt
     );
 
     expectedReserveData.totalVariableDebt = expectedReserveData.scaledVariableDebt.rayMul(
@@ -943,7 +954,7 @@ export const calcExpectedUserDataAfterSwapRateMode = (
     expectedUserData.stableBorrowRate = BigNumber.from(0);
 
     expectedUserData.scaledVariableDebt = userDataBeforeAction.scaledVariableDebt.add(
-      stableDebtBalance.rayDiv(expectedDataAfterAction.variableBorrowIndex)
+      stableDebtBalance.rayDivRoundUp(expectedDataAfterAction.variableBorrowIndex)
     );
     expectedUserData.currentVariableDebt = expectedUserData.scaledVariableDebt.rayMul(
       expectedDataAfterAction.variableBorrowIndex
